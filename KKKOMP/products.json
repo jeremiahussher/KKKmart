@@ -1,0 +1,61 @@
+[
+    {
+        "image": "shoes.png",
+        "name": "Shoes",
+        "price": "600",
+        "stock": "10",
+        "rating": "4.5",
+        "description": "Nice shoes",
+        "seller": "Shoe Marketplace",
+        "size": [
+            "40",
+            "41",
+            "42",
+            "43",
+            "44"
+        ]
+    },
+    {
+        "image": "clothes.png",
+        "name": "Tupad Clothes",
+        "price": "150",
+        "stock": "30",
+        "rating": "3.0",
+        "description": "Bibile ka neto? Matuto kang TUMUPAD sa usapan!",
+        "seller": "Tupad Clothing System",
+        "size": [
+            "Small",
+            "Medium",
+            "Large"
+        ]
+    },
+    {
+        "image": "phone.png",
+        "name": "NOKIA PHONE",
+        "price": "300",
+        "stock": "50",
+        "rating": "5.0",
+        "description": "Latest smartphone with advanced features.",
+        "seller": "Nokia Store",
+        "size": [
+            "64GB",
+            "128GB",
+            "256GB"
+        ]
+    },
+    {
+        "image": "laptop.png",
+        "name": "ASUS Republic of Gamers",
+        "price": "600",
+        "stock": "20",
+        "rating": "4.0",
+        "description": "High-performance laptop for work and play.",
+        "seller": "Tech World",
+        "size": [
+            "13 inch",
+            "15 inch",
+            "17 inch"
+        ]
+    }
+
+]

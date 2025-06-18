@@ -1,0 +1,10 @@
+[
+    {
+        "image": "phone.png",
+        "name": "NOKIA PHONE",
+        "price": "$300",
+        "stocks": "50",
+        "rating": "\u2b50\u2b50\u2b50\u2b50\u2b50",
+        "description": "Latest smartphone with advanced features."
+    }
+]
