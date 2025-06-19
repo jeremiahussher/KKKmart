@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QVBoxLayout, QHBoxLayout, QMessageBox, QSpacerItem, 
     QSizePolicy, QGridLayout, QFrame, QComboBox, QRadioButton, QListWidget,
-    QListWidgetItem, QTextEdit, QCheckBox, QGraphicsOpacityEffect, QTabWidget
+    QListWidgetItem, QTextEdit, QCheckBox, QGraphicsOpacityEffect, QDialog
 )
-from PyQt5.QtGui import QFont, QCursor, QPixmap, QIcon, QPainter, QLinearGradient, QColor
+from PyQt5.QtGui import QFont, QCursor, QPixmap, QIcon
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation
 
 
@@ -55,7 +55,9 @@ def fade_in_animation(widget, duration=800):
     animation.setStartValue(0)
     animation.setEndValue(1)
     animation.start()
-    widget.animation = animation  # Prevent garbage collection
+    widget.animation = animation 
+
+
 
 #Proceed to Login Interface
 class LoginUI(QWidget):
@@ -70,8 +72,8 @@ class LoginUI(QWidget):
     
        #Existing Accounts
         self.users = {
-            "admin": "admin123",
-            "user": "user123"
+            "user1": "user123",
+            "user2": "user222"
         }
 
     def setup_ui(self):
@@ -190,6 +192,7 @@ class LoginUI(QWidget):
             return
 
         if username in self.users and self.users[username] == password:
+            accounts = {u: {"cart": []} for u in self.users}
             if self.remember_checkbox.isChecked():
                 with open("remember_me.json", "w") as f:
                     json.dump({"username": username, "password": password}, f)
@@ -198,7 +201,7 @@ class LoginUI(QWidget):
                     os.remove("remember_me.json")
 
             QMessageBox.information(self, "Login Successful", f"Welcome, {username}!")
-            self.homepage = HomePageUI(username, self)
+            self.homepage = HomePageUI(username, self, accounts)
             self.homepage.show()
             self.close()
         else:
@@ -360,12 +363,13 @@ class RegisterUI(QWidget):
     
 #HomePage Window
 class HomePageUI(QWidget):
-    def __init__(self, username, login_window):
+    def __init__(self, username, login_window, accounts):
         super().__init__()
         self.setWindowTitle("KKKMART - Home")
         self.setGeometry(100, 100, 360, 640)
         self.username = username
         self.login_window = login_window
+        self.accounts = accounts
         self.setFixedSize(360,640)
         self.products = self.load_products()
         self.setStyleSheet("background-color: white;")
@@ -403,6 +407,7 @@ class HomePageUI(QWidget):
         search_btn.clicked.connect(self.open_product_listing)
         search_layout.addWidget(search_box)
         search_layout.addWidget(search_btn)
+        
 
         sale_banner = QLabel("SALE! 50% OFF")
         sale_banner.setFont(QFont("Arial", 24, QFont.Bold))
@@ -536,7 +541,9 @@ class HomePageUI(QWidget):
 
     #Proceeding to Settings
     def open_settings(self):
-        self.settings_window = AccountSettingsUI(self.login_window, self)
+        self.settings_window = AccountSettingsUI(self.login_window, self, 
+                                                 self.accounts,
+                                                 self.username)
         self.settings_window.show()
         self.close()
     
@@ -1672,10 +1679,12 @@ class NotificationUI(QWidget):
 
 #Account Settings
 class AccountSettingsUI(QWidget):
-    def __init__(self, login_window, homepage_window):
+    def __init__(self, login_window, homepage_window, accounts, current_user):
         super().__init__()
         self.login_window = login_window  
         self.homepage_window = homepage_window
+        self.accounts = accounts
+        self.current_user = current_user
         self.setWindowTitle("Account Settings")
         self.setGeometry(100, 100, 350, 600)
         self.setStyleSheet("background-color: white;")
@@ -1728,7 +1737,9 @@ class AccountSettingsUI(QWidget):
         # Create buttons for My Account section and connect signals
         account_security_btn = self.single_button("Account | Security")
         account_security_btn.clicked.connect(self.open_account_security)
+        account_security_btn.setCursor(QCursor(Qt.PointingHandCursor))
         bank_accounts_btn = self.single_button("Bank Accounts")
+        bank_accounts_btn.setCursor(QCursor(Qt.PointingHandCursor))
         bank_accounts_btn.clicked.connect(self.open_bank_accounts)
         layout.addLayout(self.button_row_widgets(account_security_btn, bank_accounts_btn))
 
@@ -1736,11 +1747,14 @@ class AccountSettingsUI(QWidget):
 
         notification_settings_btn = self.single_button("Notification Settings")
         notification_settings_btn.clicked.connect(self.open_notification_settings)
+        notification_settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
         layout.addWidget(notification_settings_btn)
 
         privacy_settings_btn = self.single_button("Privacy Settings")
         privacy_settings_btn.clicked.connect(self.open_privacy_settings)
+        privacy_settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
         language_btn = self.single_button("Language")
+        language_btn.setCursor(QCursor(Qt.PointingHandCursor))
         language_btn.clicked.connect(self.open_language_settings)
         layout.addLayout(self.button_row_widgets(privacy_settings_btn, language_btn))
 
@@ -1748,22 +1762,54 @@ class AccountSettingsUI(QWidget):
 
         help_centre_btn = self.single_button("Help Centre")
         help_centre_btn.clicked.connect(self.open_help_centre)
+        help_centre_btn.setCursor(QCursor(Qt.PointingHandCursor))
         community_rules_btn = self.single_button("Community Rules")
         community_rules_btn.clicked.connect(self.open_community_rules)
+        community_rules_btn.setCursor(QCursor(Qt.PointingHandCursor))
         layout.addLayout(self.button_row_widgets(help_centre_btn, community_rules_btn))
 
         about_btn = self.single_button("About")
         about_btn.clicked.connect(self.open_about)
+        about_btn.setCursor(QCursor(Qt.PointingHandCursor))
         kkkmart_policies_btn = self.single_button("KKKMart Policies")
+        kkkmart_policies_btn.setCursor(QCursor(Qt.PointingHandCursor))
         kkkmart_policies_btn.clicked.connect(self.open_kkkmart_policies)
         layout.addLayout(self.button_row_widgets(about_btn, kkkmart_policies_btn))
 
         #Switch Button
         switch_btn = QPushButton("Switch Account")
+        switch_btn.clicked.connect(self.switch_account)
+        switch_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+        """)
         switch_btn.setCursor(QCursor(Qt.PointingHandCursor))
         #Log Out Button
         logout_btn = QPushButton("Logout")
         logout_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        logout_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
 
         for btn in (switch_btn, logout_btn):
             btn.setFixedHeight(40)
@@ -1845,15 +1891,66 @@ class AccountSettingsUI(QWidget):
         self.homepage_window.show()  
         self.close()
 
+    #Switching Account
+    def switch_account(self):
+        dialog = SwitchAccountDialog(self.accounts, self)
+        if dialog.exec_() == QDialog.Accepted and dialog.selected_user:
+            self.current_user = dialog.selected_user
+            self.accounts[self.current_user]["cart"] = []
+            self.homepage_window = HomePageUI(username=self.current_user, login_window=self.login_window, accounts=self.accounts)
+            self.homepage_window.show()
+            self.close()
+
+        
     #Log out and going back to login interface
     def logout(self):
         self.login_window.show()
         self.close()
 
 
+
+class SwitchAccountDialog(QDialog):
+    def __init__(self, accounts, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Switch Account")
+        self.selected_user = None
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel("Choose an account:"))
+        layout.setSpacing(20)
+
+
+
+
+        for username in accounts:
+            btn = QPushButton(username)
+            btn.setCursor(QCursor(Qt.PointingHandCursor))
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    border: 1px solid red;
+                    border-radius: 10px;
+                    padding: 8px;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background-color: #8B0000;
+                    color: white;
+                    border-radius: 10px;
+                    padding: 8px;
+                    font-size: 14px;
+                }
+            """)
+            btn.clicked.connect(lambda checked, u=username: self.select_user(u))
+            layout.addWidget(btn)
+        self.setLayout(layout)
+
+    def select_user(self, user):
+        self.selected_user = user
+        self.accept()
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = LoginUI()
-    window = AccountSettingsUI(window, window)
     window.show()
     sys.exit(app.exec_())
+    
