@@ -1793,6 +1793,5 @@ class AccountSettingsUI(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = LoginUI()
-    window = AccountSettingsUI(window, window)
     window.show()
     sys.exit(app.exec_())
