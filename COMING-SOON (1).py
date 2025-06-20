@@ -1,3 +1,4 @@
+
 import sys
 import re
 import os
@@ -81,6 +82,16 @@ class LoginUI(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
 
+
+
+        logo = QLabel()
+        logo_pixmap = QPixmap("KKK2.png").scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(logo_pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setStyleSheet("background-color: transparent;")
+        fade_in_animation(logo)
+        layout.addWidget(logo)
+
         title = QLabel("KKKMART")
         title.setFont(QFont("Arial", 24, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
@@ -150,11 +161,48 @@ class LoginUI(QWidget):
 
         # Social Media Buttons
         social_row = QHBoxLayout()
-        for icon in ("F", "G"):
-            btn = QPushButton(icon)
-            btn.setFixedSize(40, 40)
-            btn.setStyleSheet("font-size: 20px;")
-            social_row.addWidget(btn)
+        
+        fb_btn = QPushButton()
+        fb_btn.setIcon(QIcon("facebook.png"))
+        fb_btn.setIconSize(QSize(40, 40))
+        fb_btn.setFixedSize(40, 60)
+        fb_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: transparent; 
+                        border: none;
+            }
+                    QPushButton:hover {
+                        border: 1px solid #3b5998;
+                }
+                    QPushButton:pressed {
+                        background-color: #f8f8f8;
+            }
+             """)
+        fb_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        fb_btn.clicked.connect(self.epbidatcom_login)
+       
+
+        gugol_btn = QPushButton()
+        gugol_btn.setIcon(QIcon("google.png"))
+        gugol_btn.setIconSize(QSize(30, 30))
+        gugol_btn.setFixedSize(60, 60)
+        gugol_btn.setStyleSheet("""
+                                QPushButton {
+                                    background-color: transparent; 
+                                    border: none;
+                                }
+                                QPushButton:hover {
+                                    border: 1px solid #db4437;
+                                }
+                                QPushButton:pressed {
+                                    background-color: #f8f8f8;
+                                }
+                                """)
+        gugol_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        gugol_btn.clicked.connect(self.gulugulu_login)
+
+        social_row.addWidget(fb_btn)
+        social_row.addWidget(gugol_btn) 
 
         # Putting all widgets in the layout
         layout.addWidget(title)
@@ -171,6 +219,12 @@ class LoginUI(QWidget):
         wrapper.addLayout(layout)
         wrapper.addStretch()
         self.setLayout(wrapper)
+
+    def epbidatcom_login(self):
+        QMessageBox.information(self, "Login", "Facebook login is not implemented yet.")
+
+    def gulugulu_login(self):
+        QMessageBox.information(self, "Login", "Google login is not implemented yet.")
 
 
     def create_input(self, placeholder, is_password=False):
@@ -330,22 +384,18 @@ class RegisterUI(QWidget):
             QMessageBox.warning(self, "Input Error", "Please fill all of this!!!!")
             return
 
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             QMessageBox.warning(self, "Failed to Create Account", "Enter a valid email address.")
             return
 
-        if len(password) < 6:
+        elif len(password) < 6:
             QMessageBox.warning(self, "Failed to Create Account", "Password must be at least 6 characters long.")
             return
 
-        if not phone.isdigit() or len(phone) < 11:
+        elif not phone.isdigit() or len(phone) < 11:
             QMessageBox.warning(self, "Failed to Create Account", "Enter a valid phone number.")
             return
 
-        QMessageBox.information(self, "Registration Successful", f"Welcome, {name}!")
-        self.login_window.add_new_user(name, password)
-        self.login_window.show()
-        self.close()
 
     #Must be password visible if are showed
     def password_visibility(self):
@@ -812,7 +862,7 @@ class ItemDetailsUI(QWidget):
         self.setLayout(main_layout)
 
     def buy_items(self):
-        add_notification(f"You purchased {self.name} for ${self.price}!")
+        add_notification(f"You purchased {self.name} for {self.price}!")
         self.checkout_window = CheckoutUI(self.homepage_window, {
             "name": self.name,
             "price": float(self.price.replace("$", "").strip())
@@ -1265,10 +1315,13 @@ class ProductWindow(QWidget):
 
 #Checkout Window
 class CheckoutUI(QWidget):
-    def __init__(self, cart_window, product_data=None):  
+    def __init__(self, cart_window, homepage_window, product_data=None):  
         super().__init__()
         self.cart_window = cart_window
+        self.homepage_window = homepage_window
         self.product_data = product_data or {}
+        self.applied_discount = 0
+        self.setWindowIcon(QIcon("KKK2.png"))
         self.setWindowTitle("KKKMART - Checkout")
         self.setGeometry(100, 100, 360, 600)
         self.setStyleSheet("background-color: white;")
@@ -1285,6 +1338,11 @@ class CheckoutUI(QWidget):
                             "margin-bottom: 20px;"
                             )
         layout.addWidget(title, alignment = Qt.AlignCenter)
+
+        if self.product_data.get("name"):
+            item_name = QLabel(f"Item: {self.product_data['name']}")
+            item_name.setStyleSheet("font-size: 16px; color: black;")
+            layout.addWidget(item_name, alignment=Qt.AlignCenter)
 
         coupons_layout = QVBoxLayout() 
         
@@ -1366,10 +1424,10 @@ class CheckoutUI(QWidget):
         details_title = QLabel("Payment Details")
         details_title.setStyleSheet("font-weight: bold; font-size: 14px; margin-top: 15px;")
 
-        self.subtotal_value = 100  
-        self.subtotal_label = QLabel(f"Merchandise Subtotal: ${self.subtotal_value}")
-        self.discount_label = QLabel("Coupons Discount Subtotal: $0")
-        self.total_label = QLabel(f"Total Payment: ${self.subtotal_value}")
+        self.subtotal_value = self.product_data.get("price", 100)
+        self.subtotal_label = QLabel(f"Merchandise Subtotal: ${self.subtotal_value:.2f}")
+        self.discount_label = QLabel("Coupons Discount Subtotal: $0.00")
+        self.total_label = QLabel(f"Total Payment: ${self.subtotal_value:.2f}")
 
         for label in [self.subtotal_label, self.discount_label, self.total_label]:
             label.setStyleSheet("margin: 5px; font-size: 13px;")
@@ -1420,18 +1478,24 @@ class CheckoutUI(QWidget):
     def apply_coupon_code(self, code):
         code = code.upper()
         subtotal = self.subtotal_value
+        self.applied_discount = 0
         if code in COUPONS:
             coupon = COUPONS[code]
             if subtotal >= coupon.get("min_spend", 0):
                 discount = subtotal * coupon["discount"]
                 if "max_discount" in coupon:
                     discount = min(discount, coupon["max_discount"])
-                self.discount_label.setText(f"Coupons Discount Subtotal: ${discount:.2f}")
-                self.total_label.setText(f"Total Payment: ${subtotal - discount:.2f}")
+                self.applied_discount = discount
+                self.discount_label.setText(f"Coupons Discount Subtotal: ${self.applied_discount:.2f}")
+                self.total_label.setText(f"Total Payment: ${subtotal - self.applied_discount:.2f}")
                 QMessageBox.information(self, "Coupon Applied", f"{coupon['desc']} applied!")
             else:
+                self.discount_label.setText("Coupons Discount Subtotal: $0.00")
+                self.total_label.setText(f"Total Payment: ${subtotal:.2f}")
                 QMessageBox.warning(self, "Coupon Not Applied", f"Minimum spend not met for {code}.")
         else:
+            self.discount_label.setText("Coupons Discount Subtotal: $0.00")
+            self.total_label.setText(f"Total Payment: ${subtotal:.2f}")
             QMessageBox.warning(self, "Invalid Coupon", "This coupon code is not valid.")
 
     def apply_coupon_from_input(self):
@@ -1455,6 +1519,38 @@ class CheckoutUI(QWidget):
             return
 
         self.show_payment_confirmation(method)
+
+        order = {
+            "name": self.product_data.get("name", "Unknown Item"),
+            "price": self.subtotal_value,
+            "discount": f"{self.applied_discount:.2f}",
+            "total": f"{self.subtotal_value - self.applied_discount:.2f}",
+            "payment_method": method
+        }
+
+        try:
+            with open("purchases.json", "r") as f:
+                history = json.load(f)
+        
+        except:
+            history = []
+
+        history.append(order)
+
+        with open("purchases.json", "w") as f:
+            json.dump(history, f, indent=4)
+        
+        # I use Built in Functions
+        if isinstance(self.cart_window, InventoryCartUI):
+            if os.path.exists("cart.json"):
+                os.remove("cart.json")
+
+        if hasattr(self.cart_window, "homepage_window"):
+            self.cart_window.homepage_window.show()  
+        else:
+            self.cart_window.show() 
+        
+        self.close()
     
 
     #Going Back to cart window
@@ -1703,13 +1799,20 @@ class AccountSettingsUI(QWidget):
         back_btn.setCursor(QCursor(Qt.PointingHandCursor))
         back_btn.setFixedSize(40, 40)
         back_btn.setStyleSheet("""
-                   QPushButton {
+                QPushButton {
                     background-color: red;
                     color: white;
                     font-size: 18px;
                     border: 1px solid red;
                     border-radius: 10px;
-              }
+            }
+                QPushButton:hover {
+                    background-color: #8B0000;
+                    color: white;
+                    font-size: 18px;
+                    border: 1px solid red;
+                    border-radius: 10px;
+            }
         """)
         back_btn.clicked.connect(self.homepage_again)
 
@@ -1738,43 +1841,193 @@ class AccountSettingsUI(QWidget):
         account_security_btn = self.single_button("Account | Security")
         account_security_btn.clicked.connect(self.open_account_security)
         account_security_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        account_security_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
         bank_accounts_btn = self.single_button("Bank Accounts")
         bank_accounts_btn.setCursor(QCursor(Qt.PointingHandCursor))
         bank_accounts_btn.clicked.connect(self.open_bank_accounts)
+        bank_accounts_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
         layout.addLayout(self.button_row_widgets(account_security_btn, bank_accounts_btn))
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("color: red; background-color: red; height: 2px;")
+        line.setFixedHeight(2)
+        layout.addWidget(line)
 
         layout.addWidget(section_label("Settings"))
 
         notification_settings_btn = self.single_button("Notification Settings")
         notification_settings_btn.clicked.connect(self.open_notification_settings)
         notification_settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        notification_settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
         layout.addWidget(notification_settings_btn)
 
         privacy_settings_btn = self.single_button("Privacy Settings")
         privacy_settings_btn.clicked.connect(self.open_privacy_settings)
         privacy_settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        privacy_settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
         language_btn = self.single_button("Language")
         language_btn.setCursor(QCursor(Qt.PointingHandCursor))
         language_btn.clicked.connect(self.open_language_settings)
+        language_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
+                        
+                    
         layout.addLayout(self.button_row_widgets(privacy_settings_btn, language_btn))
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("color: red; background-color: red; height: 2px;")
+        line.setFixedHeight(2)
+        layout.addWidget(line)
 
         layout.addWidget(section_label("Support"))
 
         help_centre_btn = self.single_button("Help Centre")
         help_centre_btn.clicked.connect(self.open_help_centre)
         help_centre_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        help_centre_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+""")   
+
         community_rules_btn = self.single_button("Community Rules")
         community_rules_btn.clicked.connect(self.open_community_rules)
         community_rules_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        community_rules_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+        """)
         layout.addLayout(self.button_row_widgets(help_centre_btn, community_rules_btn))
 
         about_btn = self.single_button("About")
         about_btn.clicked.connect(self.open_about)
         about_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        about_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: red;
+                    color: white;
+                    font-size: 14px;
+                    border-radius: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #8B0000;
+                    color: white;
+                    font-size: 14px;
+                    border-radius: 10px;
+                }
+            """)
         kkkmart_policies_btn = self.single_button("KKKMart Policies")
         kkkmart_policies_btn.setCursor(QCursor(Qt.PointingHandCursor))
         kkkmart_policies_btn.clicked.connect(self.open_kkkmart_policies)
+        kkkmart_policies_btn.setStyleSheet("""
+            QPushButton {
+                background-color: red;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #8B0000;
+                color: white;
+                font-size: 14px;
+                border-radius: 10px;
+}
+        """)
         layout.addLayout(self.button_row_widgets(about_btn, kkkmart_policies_btn))
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("color: red; background-color: red; height: 2px;")
+        line.setFixedHeight(2)
+        layout.addWidget(line)
 
         #Switch Button
         switch_btn = QPushButton("Switch Account")
@@ -1820,6 +2073,12 @@ class AccountSettingsUI(QWidget):
                     font-size: 14px;
                     border-radius: 10px;
                 }
+                QPushButton:hover {
+                    background-color: #8B0000;
+                    color: white;
+                    font-size: 14px;
+                    border-radius: 10px;
+                }
             """)
 
         logout_btn.clicked.connect(self.logout)
@@ -1860,7 +2119,9 @@ class AccountSettingsUI(QWidget):
         QMessageBox.information(self, "Community Rules", "Community Rules feature is not implemented yet.")
 
     def open_about(self):
-        QMessageBox.information(self, "About", "About feature is not implemented yet.")
+        self.about_window = AboutUI(self)
+        self.about_window.show()
+        self.hide()
 
     def open_kkkmart_policies(self):
         QMessageBox.information(self, "KKKMart Policies", "KKKMart Policies feature is not implemented yet.")
@@ -1947,6 +2208,57 @@ class SwitchAccountDialog(QDialog):
     def select_user(self, user):
         self.selected_user = user
         self.accept()
+
+
+class AboutUI(QWidget):
+    def __init__(self, settings_window):
+        super().__init__()
+        self.settings_window = settings_window
+        self.setWindowTitle("About KKKMART")
+        self.setGeometry(100, 100, 360, 500)
+        self.setStyleSheet("background-color: white;")
+        self.setWindowIcon(QIcon("KKK2.png"))
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        layout.setSpacing(10)
+
+        # Header
+        title = QLabel("About KKKMART")
+        title.setFont(QFont("Arial", 16, QFont.Bold))
+        title.setStyleSheet("color: red;")
+        layout.addWidget(title, alignment=Qt.AlignCenter)
+
+        about_text = QLabel("""
+            KKKMART is a desktop-based shopping app designed to provide users with a smooth and fun shopping experience.
+
+            🛒 Browse and buy a variety of products  
+            🔔 Get real-time notifications  
+            🧾 Track your purchases  
+            🎁 Apply discount coupons  
+            🔐 Manage your account securely
+
+            Created with ❤️ by Team KKKMART — PUP Parañaque BSIT Batch 2024-2025
+        """)
+        about_text.setWordWrap(True)
+        about_text.setStyleSheet("font-size: 13px; color: #333;")
+        layout.addWidget(about_text)
+
+        back_btn = QPushButton("Back")
+        back_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        back_btn.setStyleSheet("background-color: red; color: white; border-radius: 8px;")
+        back_btn.clicked.connect(self.go_back)
+        layout.addWidget(back_btn, alignment=Qt.AlignLeft)
+        layout.addStretch()
+        
+
+        self.setLayout(layout)
+
+    def go_back(self):
+        self.settings_window.show()
+        self.close()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
