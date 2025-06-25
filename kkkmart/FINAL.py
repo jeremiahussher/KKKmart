@@ -3,6 +3,7 @@ import re
 import os
 import json
 from PyQt5.QtWidgets import (
+    QFileDialog,
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QVBoxLayout, QHBoxLayout, QMessageBox, QSpacerItem, 
     QMainWindow,
@@ -13,14 +14,12 @@ from PyQt5.QtGui import QFont, QCursor, QPixmap, QIcon
 from PyQt5.QtCore import Qt, QSize
 import datetime
 import database as db
-from seller_home import SellerHomeUI
 
-# --------------------
-# Per-user cart support
+
+
 CURRENT_USER = "guest"
 
 def cart_file():
-    """Return filename for current user's cart json."""
     return f"cart_{CURRENT_USER}.json"
 # --------------------
 
@@ -60,7 +59,6 @@ def save_notification(text: str):
         pass
 
 def clear_notifications():
-    """Erase all stored notifications."""
     try:
         with open(NOTIFICATION_FILE, "w") as f:
             json.dump([], f)
@@ -70,8 +68,14 @@ def clear_notifications():
 class LoginUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("KKKMART SHOPPING")
-        self.setGeometry(100, 100, 350, 500)
+        self.setWindowTitle("KKKMART - Login")
+        self.setGeometry(100, 100, 400, 600)
+        self.setStyleSheet("""
+            QWidget {
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background-color: #f5f7fa;
+            }
+        """)
         self.setup_ui()
 
         # Initialize database and ensure default users exist
@@ -82,17 +86,28 @@ class LoginUI(QWidget):
         db.add_user("user", "user123", "user@example.com", "00000000001", "buyer")
 
     def setup_ui(self):
+        # Main layout
         layout = QVBoxLayout()
-        layout.setSpacing(15)
+        layout.setSpacing(25)
+        layout.setContentsMargins(40, 40, 40, 40)
 
+        # App title
         title = QLabel("KKKMART")
-        title.setFont(QFont("Arial", 24, QFont.Bold))
+        title.setFont(QFont("Segoe UI", 28, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("color: red;")
+        title.setStyleSheet("""
+            QLabel {
+                color: #e74c3c;
+                margin-bottom: 10px;
+                letter-spacing: 1px;
+            }
+        """)
 
-        subtitle = QLabel("Login to continue.")
-        subtitle.setFont(QFont("Poppins", 9))
+        # Subtitle
+        subtitle = QLabel("Welcome back! Please sign in to continue.")
+        subtitle.setFont(QFont("Segoe UI", 10))
         subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet("color: #7f8c8d; margin-top: -10px;")
 
         self.username_input = self.create_input("Username")
         self.password_input = self.create_input("Password", is_password=True)
@@ -128,55 +143,129 @@ class LoginUI(QWidget):
                 self.remember_checkbox.setChecked(True)
 
         # Login Button
-        login_btn = QPushButton("Log in")
-        login_btn.setStyleSheet("background-color: red; color: white; font-size: 16px; padding: 10px; border-radius: 10px;")
+        login_btn = QPushButton("LOG IN")
+        login_btn.setFixedHeight(48)
         login_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        login_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                border: none;
+                border-radius: 8px;
+                padding: 0 20px;
+                margin: 5px 0;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:pressed {
+                background-color: #a93226;
+                padding-top: 3px;
+            }
+        """)
         login_btn.clicked.connect(self.login_validation)
 
         # Register prompt
         text_label = QLabel("Don't have an account?")
-        text_label.setStyleSheet("color: gray; font-size: 12px;")
+        text_label.setStyleSheet("color: #7f8c8d; font-size: 13px;")
 
         register_btn = QPushButton("Register")
-        register_btn.setStyleSheet("background: transparent; color: red; border: none; font-size: 12px;")
+        register_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #e74c3c;
+                border: none;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 0 0 0 5px;
+            }
+            QPushButton:hover {
+                color: #c0392b;
+                text-decoration: underline;
+            }
+        """)
         register_btn.setCursor(QCursor(Qt.PointingHandCursor))
         register_btn.clicked.connect(self.open_register)
 
         register_row = QHBoxLayout()
         register_row.setAlignment(Qt.AlignCenter)
+        register_row.setSpacing(2)
         register_row.addWidget(text_label)
         register_row.addWidget(register_btn)
 
-        # Social Media Buttons
-        social_row = QHBoxLayout()
-        for icon in ("F", "G"):
-            btn = QPushButton(icon)
-            btn.setFixedSize(40, 40)
-            btn.setStyleSheet("font-size: 20px;")
-            social_row.addWidget(btn)
+        # Social login buttons removed as per user request
 
-        # Putting all widgets in the layout
+        # Form container
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(15)
+        
+        # Add form elements with labels
+        form_layout.addWidget(QLabel("Username"))
+        form_layout.addWidget(self.username_input)
+        form_layout.addWidget(QLabel("Password"))
+        form_layout.addLayout(password_row)
+        
+        # Remember me row
+        remember_row = QHBoxLayout()
+        remember_row.addWidget(self.remember_checkbox)
+        remember_row.addStretch()
+        
+        # Forgot password link
+        forgot_btn = QPushButton("Forgot Password?")
+        forgot_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #3498db;
+                border: none;
+                font-size: 12px;
+                padding: 0;
+            }
+            QPushButton:hover {
+                color: #2980b9;
+                text-decoration: underline;
+            }
+        """)
+        forgot_btn.setCursor(Qt.PointingHandCursor)
+        remember_row.addWidget(forgot_btn)
+        
+        # Add widgets to layout
         layout.addWidget(title)
         layout.addWidget(subtitle)
-        layout.addWidget(self.username_input, alignment=Qt.AlignLeft)
-        layout.addLayout(password_row)
-        layout.addWidget(self.remember_checkbox)
+        layout.addSpacing(10)
+        layout.addLayout(form_layout)
+        layout.addLayout(remember_row)
+        layout.addSpacing(5)
         layout.addWidget(login_btn)
+        layout.addSpacing(15)
         layout.addLayout(register_row)
-        layout.addLayout(social_row)
-
-        wrapper = QVBoxLayout()
-        wrapper.addStretch()
-        wrapper.addLayout(layout)
-        wrapper.addStretch()
-        self.setLayout(wrapper)
+        layout.addStretch()
+        
+        # Set main layout
+        self.setLayout(layout)
 
     def create_input(self, placeholder, is_password=False):
         input_field = QLineEdit()
         input_field.setPlaceholderText(placeholder)
-        input_field.setFixedHeight(40)
-        input_field.setFixedWidth(270)
-        input_field.setStyleSheet("border: 1px solid #ccc; border-radius: 10px; padding: 0 10px;")
+        input_field.setFixedHeight(48)
+        input_field.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 0 15px;
+                font-size: 14px;
+                background: #f8f9fa;
+                color: #2c3e50;
+            }
+            QLineEdit:focus {
+                border: 2px solid #3498db;
+                background: white;
+            }
+            QLineEdit::placeholder {
+                color: #95a5a6;
+            }
+        """)
         if is_password:
             input_field.setEchoMode(QLineEdit.Password)
         return input_field
@@ -257,106 +346,262 @@ class RegisterUI(QWidget):
     def __init__(self, login_window):
         super().__init__()
         self.login_window = login_window
-        self.setWindowTitle("Create New Account")
-        self.setGeometry(100, 100, 350, 500)
-        self.setStyleSheet("background-color: white;")
+        self.setWindowTitle("Create New Account - KKKMART")
+        self.setGeometry(100, 100, 400, 650)
+        self.setStyleSheet("""
+            QWidget {
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background-color: white;
+            }
+        """)
         self.register_setup_ui()
 
-    #Register Setup
+    # Register Setup with modern design
     def register_setup_ui(self):
+        # Main layout
         layout = QVBoxLayout()
-        layout.setSpacing(10)
+        layout.setSpacing(20)
+        layout.setContentsMargins(40, 40, 40, 40)
 
-        title = QLabel("Create new\nAccount")
-        title.setFont(QFont("Arial", 20, QFont.Bold))
-        title.setStyleSheet("color: red;")
-        layout.addWidget(title, alignment=Qt.AlignCenter)
+        # App title
+        title = QLabel("Create Account")
+        title.setFont(QFont("Segoe UI", 24, QFont.Bold))
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("""
+            QLabel {
+                color: #e74c3c;
+                margin-bottom: 5px;
+                letter-spacing: 0.5px;
+            }
+        """)
 
-        subtext = QLabel("Already Registered? Log in here")
-        subtext.setFont(QFont("Arial", 10))
-        subtext.setStyleSheet("color: grey;")
-        layout.addWidget(subtext, alignment=Qt.AlignCenter)
+        # Subtitle
+        subtext = QLabel("Join KKKMART today")
+        subtext.setFont(QFont("Segoe UI", 10))
+        subtext.setAlignment(Qt.AlignCenter)
+        subtext.setStyleSheet("color: #7f8c8d; margin-bottom: 15px;")
 
-        #All Input
-        self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Username")
-        self.setup_input(self.name_input, layout)
-
-        self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("Email")
-        self.setup_input(self.email_input, layout)
+        # Form container
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(15)
         
-        # Account Type Selection
-        account_type_layout = QHBoxLayout()
-        account_type_label = QLabel("Account Type:")
-        account_type_label.setStyleSheet("font-size: 14px;")
-        self.buyer_radio = QRadioButton("Buyer")
-        self.buyer_radio.setChecked(True)
-        self.seller_radio = QRadioButton("Seller")
-        account_type_layout.addWidget(account_type_label)
-        account_type_layout.addWidget(self.buyer_radio)
-        account_type_layout.addWidget(self.seller_radio)
-        account_type_layout.addStretch()
-        layout.addLayout(account_type_layout)
-
-        password_layout = QHBoxLayout()
+        # Name input
+        self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText("Full Name")
+        self.setup_input(self.name_input)
+        
+        # Email input
+        self.email_input = QLineEdit()
+        self.email_input.setPlaceholderText("Email Address")
+        self.setup_input(self.email_input)
+        
+        # Phone input
+        self.phone_input = QLineEdit()
+        self.phone_input.setPlaceholderText("Phone Number")
+        self.setup_input(self.phone_input)
+        
+        # Password input with toggle
+        password_container = QWidget()
+        password_layout = QHBoxLayout(password_container)
+        password_layout.setContentsMargins(0, 0, 0, 0)
+        password_layout.setSpacing(0)
+        
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Password")
+        self.password_input.setPlaceholderText("Create a password")
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setStyleSheet("padding: 10px; border-radius: 10px; background-color: lightgray; font-size: 14px;")
-        self.password_input.setMinimumHeight(40)
-
+        self.password_input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e0e0e0;
+                border-top-left-radius: 8px;
+                border-bottom-left-radius: 8px;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+                padding: 0 15px;
+                font-size: 14px;
+                background: #f8f9fa;
+                color: #2c3e50;
+                height: 48px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #3498db;
+                background: white;
+            }
+            QLineEdit::placeholder {
+                color: #95a5a6;
+            }
+        """)
+        
         self.toggle_register_password = QPushButton("Show")
-        self.toggle_register_password.setFixedWidth(30)
+        self.toggle_register_password.setFixedSize(80, 48)
         self.toggle_register_password.setCheckable(True)
         self.toggle_register_password.setCursor(QCursor(Qt.PointingHandCursor))
+        self.toggle_register_password.setStyleSheet("""
+            QPushButton {
+                border: 2px solid #e0e0e0;
+                border-left: none;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                background-color: #f8f9fa;
+                color: #7f8c8d;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #f1f1f1;
+            }
+            QPushButton:checked {
+                color: #e74c3c;
+            }
+        """)
         self.toggle_register_password.clicked.connect(self.password_visibility)
+        
         password_layout.addWidget(self.password_input)
         password_layout.addWidget(self.toggle_register_password)
-        layout.addLayout(password_layout)
+        
+        # Account Type Selection
+        account_type_container = QWidget()
+        account_type_layout = QVBoxLayout(account_type_container)
+        account_type_layout.setContentsMargins(0, 10, 0, 0)
+        
+        account_type_label = QLabel("Account Type")
+        account_type_label.setStyleSheet("""
+            QLabel {
+                color: #2c3e50;
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 8px;
+            }
+        """)
+        
+        radio_container = QWidget()
+        radio_layout = QHBoxLayout(radio_container)
+        radio_layout.setContentsMargins(0, 0, 0, 0)
+        radio_layout.setSpacing(20)
+        
+        self.buyer_radio = QRadioButton("Buyer")
+        self.seller_radio = QRadioButton("Seller")
+        self.buyer_radio.setChecked(True)
+        
+        # Style radio buttons
+        radio_style = """
+            QRadioButton {
+                color: #2c3e50;
+                font-size: 14px;
+                spacing: 8px;
+            }
+            QRadioButton::indicator {
+                width: 18px;
+                height: 18px;
+                border: 2px solid #bdc3c7;
+                border-radius: 9px;
+            }
+            QRadioButton::indicator:checked {
+                background-color: #e74c3c;
+                border: 2px solid #e74c3c;
+            }
+            QRadioButton::indicator:hover {
+                border-color: #95a5a6;
+            }
+        """
+        self.buyer_radio.setStyleSheet(radio_style)
+        self.seller_radio.setStyleSheet(radio_style)
+        
+        radio_layout.addWidget(self.buyer_radio)
+        radio_layout.addWidget(self.seller_radio)
+        radio_layout.addStretch()
+        
+        account_type_layout.addWidget(account_type_label)
+        account_type_layout.addWidget(radio_container)
 
-        self.phone_input = QLineEdit()
-        self.phone_input.setPlaceholderText("Phone")
-        self.setup_input(self.phone_input, layout)
-
-        #Sign Up Button
-        self.sign_up_btn = QPushButton("Sign up")
+        # Add all form elements to form layout
+        form_layout.addWidget(QLabel("Full Name"))
+        form_layout.addWidget(self.name_input)
+        form_layout.addWidget(QLabel("Email Address"))
+        form_layout.addWidget(self.email_input)
+        form_layout.addWidget(QLabel("Phone Number"))
+        form_layout.addWidget(self.phone_input)
+        form_layout.addWidget(QLabel("Password"))
+        form_layout.addWidget(password_container)
+        form_layout.addWidget(account_type_container)
+        
+        # Sign Up Button
+        self.sign_up_btn = QPushButton("CREATE ACCOUNT")
+        self.sign_up_btn.setFixedHeight(50)
         self.sign_up_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.sign_up_btn.setStyleSheet("background-color: red; color: white; font-size: 16px; padding: 10px; border-radius: 5px;")
+        self.sign_up_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                border: none;
+                border-radius: 8px;
+                margin: 5px 0 15px 0;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+            QPushButton:pressed {
+                background-color: #a93226;
+            }
+        """)
         self.sign_up_btn.clicked.connect(self.register_validation)
+        
+        # Login prompt
+        login_prompt = QHBoxLayout()
+        login_prompt.setAlignment(Qt.AlignCenter)
+        login_prompt.setSpacing(5)
+        
+        login_prompt.addWidget(QLabel("Already have an account?"))
+        login_btn = QPushButton("Sign in")
+        login_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #e74c3c;
+                border: none;
+                font-weight: 600;
+                padding: 0;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                color: #c0392b;
+                text-decoration: underline;
+            }
+        """)
+        login_btn.setCursor(Qt.PointingHandCursor)
+        login_btn.clicked.connect(self.back_to_login)
+        login_prompt.addWidget(login_btn)
+        
+        # Add all widgets to main layout
+        layout.addWidget(title)
+        layout.addWidget(subtext)
+        layout.addLayout(form_layout)
         layout.addWidget(self.sign_up_btn)
+        layout.addLayout(login_prompt)
+        
+        # Set the main layout
+        self.setLayout(layout)
 
-        #Back to Login button 
-        back_btn = QPushButton("<- Back to Login")
-        back_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        back_btn.setStyleSheet("color: gray; border: none; font-size: 12px;")
-        back_btn.clicked.connect(self.back_to_login)
-        layout.addWidget(back_btn, alignment=Qt.AlignCenter)
-
-        layout.addSpacing(10)
-
-        social_layout = QHBoxLayout()
-        fb_btn = QPushButton("f")
-        fb_btn.setFixedSize(40, 40)
-        google_btn = QPushButton("G")
-        google_btn.setFixedSize(40, 40)
-        social_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding))
-        social_layout.addWidget(fb_btn)
-        social_layout.addWidget(google_btn)
-        social_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding))
-        layout.addLayout(social_layout)
-
-        wrapper = QVBoxLayout()
-        wrapper.addStretch()
-        wrapper.addLayout(layout)
-        wrapper.addStretch()
-        self.setLayout(wrapper)
-
-    #All Input setup
-    def setup_input(self, widget, layout):
-        widget.setStyleSheet("padding: 10px; border-radius: 10px; background-color: lightgray; font-size: 14px;")
-        widget.setMinimumHeight(40)
-        layout.addWidget(widget)
+    # Input field setup
+    def setup_input(self, widget):
+        widget.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 0 15px;
+                font-size: 14px;
+                background: #f8f9fa;
+                color: #2c3e50;
+                height: 48px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #3498db;
+                background: white;
+            }
+            QLineEdit::placeholder {
+                color: #95a5a6;
+            }
+        """)
+        widget.setFixedHeight(48)
 
     #Validation of Creating Account
     def register_validation(self):
@@ -514,44 +759,111 @@ class HomePageUI(QMainWindow):
             product_widget = QWidget()
             product_widget.setStyleSheet("""
                 QWidget {
-                    border: 1px solid #e0e0e0;
-                    border-radius: 10px;
-                    padding: 10px;
-                    background: white;
+                    background: #ffffff;
+                    border-radius: 12px;
+                    border: 1px solid #f0f0f0;
+                    padding: 0;
+                    margin: 5px;
+                    transition: all 0.3s ease;
                 }
                 QWidget:hover {
-                    border-color: #e74c3c;
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                }
+                QLabel {
+                    color: #2c3e50;
+                    font-family: 'Segoe UI', Arial, sans-serif;
                 }
             """)
             
             # Create layout for the product widget
             layout = QVBoxLayout(product_widget)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+            
+            # Product image container with fixed aspect ratio
+            image_container = QWidget()
+            image_container.setFixedHeight(140)
+            image_container.setStyleSheet("background: #f8f9fa; border-top-left-radius: 12px; border-top-right-radius: 12px;")
+            image_layout = QVBoxLayout(image_container)
+            image_layout.setContentsMargins(0, 0, 0, 0)
             
             # Add product image
             image_label = QLabel()
             if os.path.exists(product.get('image', '')):
-                pixmap = QPixmap(product['image']).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap = QPixmap(product['image']).scaled(140, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 image_label.setPixmap(pixmap)
             else:
                 image_label.setText("No Image")
+                image_label.setStyleSheet("color: #95a5a6; font-style: italic;")
             image_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(image_label)
+            image_layout.addWidget(image_label, 0, Qt.AlignCenter)
+            layout.addWidget(image_container)
+            
+            # Product details container
+            details_container = QWidget()
+            details_container.setStyleSheet("background: white; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; padding: 12px;")
+            details_layout = QVBoxLayout(details_container)
+            details_layout.setContentsMargins(8, 12, 8, 12)
+            details_layout.setSpacing(6)
             
             # Add product name
             name_label = QLabel(product.get('name', 'Unnamed Product'))
-            name_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+            name_label.setStyleSheet("""
+                font-weight: 600;
+                font-size: 14px;
+                color: #2c3e50;
+                margin-bottom: 4px;
+            """)
             name_label.setWordWrap(True)
-            layout.addWidget(name_label)
+            details_layout.addWidget(name_label)
             
             # Add product price
             price_label = QLabel(f"${float(product.get('price', '0').replace('$', '')):.2f}")
-            price_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
-            layout.addWidget(price_label)
+            price_label.setStyleSheet("""
+                color: #e74c3c;
+                font-weight: 700;
+                font-size: 16px;
+                margin: 4px 0;
+            """)
+            details_layout.addWidget(price_label)
+            
+            # Rating and stock row
+            rating_stock_container = QWidget()
+            rating_stock_layout = QHBoxLayout(rating_stock_container)
+            rating_stock_layout.setContentsMargins(0, 0, 0, 0)
+            rating_stock_layout.setSpacing(10)
             
             # Add rating
             rating_label = QLabel(product.get('rating', '⭐⭐⭐⭐⭐'))
-            rating_label.setStyleSheet("color: #f1c40f;")
-            layout.addWidget(rating_label)
+            rating_label.setStyleSheet("color: #f1c40f; font-size: 14px;")
+            rating_stock_layout.addWidget(rating_label)
+            
+            # Add stock indicator
+            stock = int(product.get('stocks', product.get('stock', '0')))
+            stock_label = QLabel(f"{stock} in stock")
+            stock_label.setStyleSheet("""
+                color: #27ae60;
+                font-size: 12px;
+                font-weight: 500;
+                padding: 2px 6px;
+                background: rgba(39, 174, 96, 0.1);
+                border-radius: 4px;
+            """)
+            if stock < 5:
+                stock_label.setStyleSheet("""
+                    color: #e74c3c;
+                    font-size: 12px;
+                    font-weight: 500;
+                    padding: 2px 6px;
+                    background: rgba(231, 76, 60, 0.1);
+                    border-radius: 4px;
+                """)
+            rating_stock_layout.addWidget(stock_label)
+            rating_stock_layout.addStretch()
+            
+            details_layout.addWidget(rating_stock_container)
+            layout.addWidget(details_container)
             
             # Add click handler
             product_widget.mousePressEvent = lambda e, p=product: self.open_item_details(
@@ -585,23 +897,6 @@ class HomePageUI(QMainWindow):
         # Clear existing widgets
         for i in reversed(range(main_layout.count())):
             main_layout.itemAt(i).widget().setParent(None)
-        
-        # Add search bar
-        search_bar = QLineEdit()
-        search_bar.setPlaceholderText("Search products...")
-        search_bar.setStyleSheet("""
-            QLineEdit {
-                border: 2px solid #ddd;
-                border-radius: 20px;
-                padding: 8px 15px;
-                font-size: 14px;
-                margin: 10px 0;
-            }
-            QLineEdit:focus {
-                border: 2px solid #e74c3c;
-            }
-        """)
-        main_layout.addWidget(search_bar)
         
         # Add sale banner
         banner = QLabel("SALE: Up to 50% OFF!")
@@ -664,6 +959,46 @@ class HomePageUI(QMainWindow):
         
         main_layout.addWidget(header)
         
+        # Add search bar and button
+        search_container = QWidget()
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 0, 10)
+        
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search products...")
+        self.search_bar.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #e0e0e0;
+                border-radius: 15px;
+                padding: 8px 15px;
+                font-size: 14px;
+                min-width: 200px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #e74c3c;
+            }
+        """)
+        
+        search_btn = QPushButton("Search")
+        search_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 8px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+        """)
+        search_btn.clicked.connect(self.search_product)
+        
+        search_layout.addWidget(self.search_bar)
+        search_layout.addWidget(search_btn)
+        main_layout.addWidget(search_container)
+        
         # Add scroll area for content
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -707,7 +1042,7 @@ class HomePageUI(QMainWindow):
             ("orders", "Orders", self.open_orders),
             ("coupons", "Coupons", self.open_coupons),
             ("bell", "Notification", self.open_notification),
-            ("setting", "Setting", self.open_settings),
+            ("settings", "Setting", self.open_settings),
             ("profile", "Profile", self.open_profile)
         ]
         
@@ -734,6 +1069,11 @@ class HomePageUI(QMainWindow):
         
         # Add navigation bar to main layout
         main_layout.addWidget(nav_bar)
+
+    def search_product(self):
+        self.product_window = ProductWindow(self)
+        self.product_window.show()
+        self.close()
 
     def go_home(self):
         # Already on home page, do nothing
@@ -882,6 +1222,7 @@ class SellerDashboardUI(QWidget):
 
         # Buttons
         buttons = [
+            ("➕ Add Product", self.add_product),
             ("📦 My Products", self.view_products),
             ("📋 Orders", self.view_orders),
             ("📊 Analytics", self.view_analytics),
@@ -915,9 +1256,22 @@ class SellerDashboardUI(QWidget):
         QMessageBox.information(self, "Settings", "Seller settings will open here.")
 
     def logout(self):
-        # Return to login window
-        self.login_window.show()
-        self.close()
+        # Show confirmation dialog before logging out
+        reply = QMessageBox.question(
+            self, 'Logout', 'Are you sure you want to logout?',
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            # Return to login window if user confirms
+            self.login_window.show()
+            self.close()
+        
+    def add_product(self):
+        # Open the Add Product window
+        self.add_product_ui = AddProductUI(self)
+        self.add_product_ui.show()
+        self.hide()
 
 class AddProductUI(QWidget):
     def __init__(self, homepage_window):
@@ -952,9 +1306,19 @@ class AddProductUI(QWidget):
         self.desc_input.setPlaceholderText("Description")
         layout.addWidget(self.desc_input)
 
+        # Image selection
+        image_layout = QHBoxLayout()
         self.image_input = QLineEdit()
-        self.image_input.setPlaceholderText("Insert Filename here (e.g. sneakers.png)")
-        layout.addWidget(self.image_input)
+        self.image_input.setPlaceholderText("Click 'Browse' to select an image")
+        self.image_input.setReadOnly(True)
+        
+        browse_btn = QPushButton("Browse...")
+        browse_btn.setStyleSheet("background-color: #ff4444; color: white; border-radius: 5px; padding: 5px;")
+        browse_btn.clicked.connect(self.browse_image)
+        
+        image_layout.addWidget(self.image_input)
+        image_layout.addWidget(browse_btn)
+        layout.addLayout(image_layout)
 
         add_btn = QPushButton("Add Product")
         add_btn.setStyleSheet("background-color: red; color: white; border-radius: 10px;")
@@ -966,6 +1330,23 @@ class AddProductUI(QWidget):
         layout.addWidget(back_btn)
 
         self.setLayout(layout)
+
+    def browse_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Select Product Image",
+            "",
+            "Image Files (*.png *.jpg *.jpeg *.bmp);;All Files (*)",
+            options=options
+        )
+        if file_name:
+            # Store just the filename, not the full path
+            self.image_input.setText(os.path.basename(file_name))
+            # You might want to copy the image to your application's image directory here
+            # For example:
+            # import shutil
+            # shutil.copy2(file_name, os.path.join("images", os.path.basename(file_name)))
 
     def save_product(self):
         product = {
