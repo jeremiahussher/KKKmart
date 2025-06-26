@@ -1457,6 +1457,30 @@ class ItemDetailsUI(QWidget):
         stock_rating_layout.addStretch()
         stock_rating_layout.addWidget(rating_label)
         main_layout.addLayout(stock_rating_layout)
+        
+        # Add seller name (clickable)
+        seller_layout = QHBoxLayout()
+        seller_label = QLabel("Seller:")
+        seller_label.setFont(QFont("Arial", 12))
+        
+        seller_name = QLabel(self.seller if self.seller else "Shoe Marketplace")
+        seller_name.setFont(QFont("Arial", 12, QFont.Bold))
+        seller_name.setStyleSheet("""
+            QLabel {
+                color: #e74c3c;
+                text-decoration: underline;
+            }
+            QLabel:hover {
+                color: #c0392b;
+                cursor: pointer;
+            }
+        """)
+        seller_name.mousePressEvent = lambda e: self.view_seller_profile()
+        
+        seller_layout.addWidget(seller_label)
+        seller_layout.addWidget(seller_name)
+        seller_layout.addStretch()
+        main_layout.addLayout(seller_layout)
 
         # Size selection
         if getattr(self, 'sizes', []):
@@ -1564,6 +1588,13 @@ class ItemDetailsUI(QWidget):
         self.checkout_window = CheckoutUI(self, item)
         self.checkout_window.show()
         self.hide()
+        
+    def view_seller_profile(self):
+        """Open the seller's profile page"""
+        seller_name = self.seller if self.seller else "Shoe Marketplace"
+        self.seller_profile = SellerProfileUI(seller_name, self.homepage_window)
+        self.seller_profile.show()
+        self.close()
 
     def go_back(self):
         self.homepage_window.show()
@@ -1574,41 +1605,429 @@ class SellerProfileUI(QWidget):
     def __init__(self, seller_name, homepage_window):
         super().__init__()
         self.setWindowTitle(f"{seller_name}'s Profile")
-        self.setGeometry(100, 100, 360, 600)
+        self.setGeometry(100, 100, 360, 700)
+        self.setStyleSheet("""
+            QWidget { font-family: 'Arial'; background-color: #f5f5f5; }
+            QPushButton { 
+                background-color: #e74c3c; 
+                color: white; 
+                border: none; 
+                padding: 8px 16px; 
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #c0392b; }
+            .header { 
+                background-color: #e74c3c; 
+                color: white; 
+                padding: 15px; 
+                font-size: 18px;
+                font-weight: bold;
+            }
+            .seller-card {
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                margin: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .product-card {
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 10px;
+                min-width: 150px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .product-name { 
+                font-weight: bold; 
+                margin: 5px 0;
+                color: #333;
+            }
+            .price {
+                color: #e74c3c;
+                font-weight: bold;
+                font-size: 16px;
+            }
+            .rating {
+                color: #f39c12;
+                font-size: 14px;
+            }
+        """)
+        
         self.seller_name = seller_name
         self.homepage_window = homepage_window
+        self.products = self.get_seller_products()
         self.seller_profile_setup_ui()
 
     def seller_profile_setup_ui(self):
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # Header
+        header = QWidget()
+        header.setProperty("class", "header")
+        header_layout = QHBoxLayout(header)
+        
+        self.back_btn = QPushButton("←")
+        self.back_btn.setFixedSize(30, 30)
+        self.back_btn.clicked.connect(self.go_back)
+        
+        title = QLabel(self.seller_name)
+        title.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                margin-left: 10px;
+            }
+        """)
+        
+        header_layout.addWidget(self.back_btn)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header.setLayout(header_layout)
+        
+        # Scroll area for products
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: #F5F5F5;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 8px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #CCCCCC;
+                min-height: 30px;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        
+        # Container for products
+        container = QWidget()
+        self.products_layout = QVBoxLayout(container)
+        self.products_layout.setSpacing(15)
+        self.products_layout.setContentsMargins(15, 15, 15, 15)
+        
+        # Add seller info section
+        self.add_seller_info()
+        
+        # Add products section
+        self.add_products_section()
+        
+        scroll.setWidget(container)
+        
+        # Add all to main layout
+        main_layout.addWidget(header)
+        main_layout.addWidget(scroll)
+        
+        self.setLayout(main_layout)
+    
+    def add_seller_info(self):
+        # Seller info card
+        seller_card = QWidget()
+        seller_card.setStyleSheet("""
+            QWidget {
+                background: white;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        
         layout = QVBoxLayout()
         
-        seller_label = QLabel(f"Seller: {self.seller_name}")
-        seller_label.setFont(QFont("Arial", 16, QFont.Bold))
+        # Seller name and rating
+        name_layout = QHBoxLayout()
+        name_label = QLabel(self.seller_name)
+        name_label.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: bold;
+            }
+        """)
+        
+        # Rating (example: 4.5 stars)
+        rating_layout = QHBoxLayout()
+        for _ in range(4):  # 4 full stars
+            star = QLabel("★")
+            star.setStyleSheet("color: #FFD700; font-size: 16px;")
+            rating_layout.addWidget(star)
+        half_star = QLabel("½")
+        half_star.setStyleSheet("color: #FFD700; font-size: 16px;")
+        rating_layout.addWidget(half_star)
+        rating_layout.addWidget(QLabel("(4.5)"))
+        rating_layout.addStretch()
+        
+        name_layout.addWidget(name_label)
+        name_layout.addLayout(rating_layout)
+        
+        # Seller stats
+        stats_layout = QHBoxLayout()
+        stats = [
+            ("Products", "50+"),
+            ("Rating", "4.5/5"),
+            ("Joined", "2023")
+        ]
+        
+        stats_layout = QHBoxLayout()
+        for stat, value in stats:
+            stat_widget = QWidget()
+            stat_layout = QVBoxLayout()
+            stat_value = QLabel(value)
+            stat_value.setStyleSheet("""
+                QLabel {
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #e74c3c;
+                }
+            """)
+            stat_label = QLabel(stat)
+            stat_label.setStyleSheet("font-size: 12px; color: #777;")
+            
+            stat_layout.addWidget(stat_value)
+            stat_layout.addWidget(stat_label)
+            stat_layout.setAlignment(Qt.AlignCenter)
+            stat_widget.setLayout(stat_layout)
+            stats_layout.addWidget(stat_widget)
+        
+        # Add stats to layout
+        layout.addLayout(name_layout)
+        layout.addLayout(stats_layout)
+        
+        # Add seller description
+        desc = QLabel("""
+            Welcome to my shop! I offer high-quality products with fast shipping.
+            Feel free to browse my collection and don't hesitate to contact me 
+            if you have any questions.
+        """)
+        desc.setWordWrap(True)
+        desc.setStyleSheet("""
+            QLabel {
+                color: #555;
+                font-size: 14px;
+                margin-top: 15px;
+                line-height: 1.4;
+            }
+        """)
+        
+        layout.addWidget(QLabel("About Seller:"))
+        layout.addWidget(desc)
+        
+        # Add to main layout
+        self.products_layout.addWidget(seller_card)
+    
+    def add_products_section(self):
+        # Add section title
+        section_title = QLabel("Products")
+        section_title.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+                margin: 10px 0 5px 0;
+            }
+        """)
+        self.products_layout.addWidget(section_title)
+        
+        if not self.products:
+            no_products = QLabel("No products available from this seller yet.")
+            no_products.setStyleSheet("color: #777; font-style: italic;")
+            self.products_layout.addWidget(no_products)
+            return
+            
+        # Add products scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:horizontal {
+                height: 6px;
+                background: #f0f0f0;
+                border-radius: 3px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #c0c0c0;
+                border-radius: 3px;
+                min-width: 20px;
+            }
+        """)
+        
+        # Container for product cards
+        container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        layout = QHBoxLayout(container)
+        layout.setSpacing(15)
+        layout.setContentsMargins(5, 5, 5, 15)
+        
+        # Add product cards
+        for product in self.products:
+            product_card = self.create_product_card(product)
+            layout.addWidget(product_card)
+        
+        # Add stretch to push cards to the left
+        layout.addStretch()
+        
+        scroll.setWidget(container)
+        self.products_layout.addWidget(scroll)
+    
+    def create_product_card(self, product):
+        card = QWidget()
+        card.setFixedWidth(160)
+        card.setStyleSheet("""
+            QWidget {
+                background: white;
+                border-radius: 10px;
+                padding: 12px;
+                border: 1px solid #eee;
+            }
+            QWidget:hover {
+                border: 1px solid #e74c3c;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Product image placeholder
+        image = QLabel("🛍️")  # Using emoji as placeholder
+        image.setAlignment(Qt.AlignCenter)
+        image.setFixedHeight(120)
+        image.setStyleSheet("""
+            QLabel {
+                font-size: 40px;
+                background: #f9f9f9;
+                border-radius: 8px;
+                margin-bottom: 5px;
+            }
+        """)
+        
+        # Product name
+        name = QLabel(product.get('name', 'Product Name'))
+        name.setStyleSheet("""
+            QLabel {
+                font-weight: bold;
+                color: #333;
+                font-size: 14px;
+                margin: 0;
+            }
+        """)
+        name.setWordWrap(True)
+        name.setMaximumHeight(40)
+        
+        # Product price
+        price = QLabel(f"${float(product.get('price', 0)):.2f}")
+        price.setStyleSheet("""
+            QLabel {
+                color: #e74c3c;
+                font-weight: bold;
+                font-size: 16px;
+                margin: 2px 0;
+            }
+        """)
+        
+        # Rating (example)
+        rating = QLabel("★★★★☆ 4.2")  # Placeholder rating
+        rating.setStyleSheet("""
+            QLabel {
+                color: #f39c12;
+                font-size: 12px;
+                margin: 2px 0;
+            }
+        """)
+        
+        # Add to cart button
+        add_to_cart = QPushButton("Add to Cart")
+        add_to_cart.setCursor(Qt.PointingHandCursor)
+        add_to_cart.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 0;
+                margin-top: 5px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+        """)
+        add_to_cart.clicked.connect(lambda _, p=product: self.add_to_cart(p))
+        
+        # Add seller name (clickable)
+        seller_name = product.get('seller', 'Unknown Seller')
+        seller_label = QLabel(f"Sold by: {seller_name}")
+        seller_label.setStyleSheet("""
+            QLabel {
+                color: #666;
+                font-size: 11px;
+                margin: 2px 0;
+                text-decoration: underline;
+            }
+            QLabel:hover {
+                color: #e74c3c;
+                cursor: pointer;
+            }
+        """)
+        seller_label.mousePressEvent = lambda e: self.view_seller_profile(seller_name)
+        
+        # Add all to layout
+        layout.addWidget(image)
+        layout.addWidget(name)
+        layout.addWidget(price)
+        layout.addWidget(rating)
         layout.addWidget(seller_label)
-
-        products = self.get_seller_products()
-        for prod in products:
-            prod_label = QLabel(f"{prod['name']} - ${prod['price']}")
-            layout.addWidget(prod_label)
-
-        back_btn = QPushButton("<- Back")
-        back_btn.clicked.connect(self.go_back)
-        layout.addWidget(back_btn)
-
-        self.setLayout(layout)
-
+        layout.addWidget(add_to_cart)
+        layout.addStretch()
+        
+        card.setLayout(layout)
+        return card
+    
+    def view_seller_profile(self, seller_name):
+        """Open the profile page for the specified seller"""
+        if seller_name != self.seller_name:  # Only open if it's a different seller
+            self.seller_profile = SellerProfileUI(seller_name, self.homepage_window)
+            self.seller_profile.show()
+            self.close()
+    
+    def add_to_cart(self, product):
+        # This method would handle adding the product to cart
+        # You can implement cart functionality here
+        print(f"Added to cart: {product.get('name')}")
     def get_seller_products(self):
-        if os.path.exists("products.json"):
-            with open("products.json", "r") as f:
-                all_products = json.load(f)
-            return [p for p in all_products if p.get("seller") == self.seller_name]
+        try:
+            if os.path.exists("products.json"):
+                with open("products.json", "r") as f:
+                    all_products = json.load(f)
+                # Filter products by seller name and limit to 10 products
+                seller_products = [p for p in all_products if p.get("seller") == self.seller_name]
+                return seller_products[:10]  # Return up to 10 products
+        except Exception as e:
+            print(f"Error loading products: {e}")
         return []
-
+    
     def go_back(self):
         self.homepage_window.show()
         self.close()
 
-#Add to Cart Window
+
 class InventoryCartUI(QWidget):
     def __init__(self, homepage_window):
         super().__init__()
@@ -2510,38 +2929,68 @@ class CheckoutUI(QWidget):
         return []
 
     def reduce_stocks(self, items):
-        """Decrease stock count in products.json according to purchased items."""
+        """Decrease stock count in both products.json and database according to purchased items."""
         products_file = "products.json"
         if not os.path.exists(products_file):
             return
-        try:
-            with open(products_file, "r") as f:
-                products = json.load(f)
-        except Exception:
-            return
+            
         # Count quantities per item name
         quantity_map = {}
         for itm in items:
             name = itm.get("name", "").strip().lower()
             quantity_map[name] = quantity_map.get(name, 0) + 1
-        changed = False
-        for prod in products:
-            prod_name = prod.get("name", "").strip().lower()
-            if prod_name in quantity_map:
-                try:
-                    current_stock = int(prod.get("stocks", prod.get("stock", 0)))
-                    new_stock = max(current_stock - quantity_map[prod_name], 0)
-                    if new_stock != current_stock:
-                        if "stocks" in prod:
-                            prod["stocks"] = str(new_stock)
-                        else:
-                            prod["stock"] = str(new_stock)
+            
+        # Update database first
+        conn = None
+        try:
+            conn = db.connect()
+            cursor = conn.cursor()
+            
+            for product_name, quantity in quantity_map.items():
+                # Update database stock
+                cursor.execute("""
+                    UPDATE products 
+                    SET stock = stock - ? 
+                    WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND stock >= ?
+                """, (quantity, product_name, quantity))
+                
+            conn.commit()
+            
+        except Exception as e:
+            print(f"Error updating database stock: {e}")
+            if conn:
+                conn.rollback()
+        finally:
+            if conn:
+                conn.close()
+        
+        # Then update JSON file
+        try:
+            with open(products_file, "r") as f:
+                products = json.load(f)
+                
+            changed = False
+            for prod in products:
+                prod_name = prod.get("name", "").strip().lower()
+                if prod_name in quantity_map:
+                    try:
+                        current_stock = int(prod.get("stocks", prod.get("stock", 0)))
+                        new_stock = max(current_stock - quantity_map[prod_name], 0)
+                        if new_stock != current_stock:
+                            if "stocks" in prod:
+                                prod["stocks"] = str(new_stock)
+                            else:
+                                prod["stock"] = str(new_stock)
                             changed = True
-                except ValueError:
-                    continue
-        if changed:
-            with open(products_file, "w") as f:
-                json.dump(products, f, indent=4)
+                    except ValueError:
+                        continue
+                        
+            if changed:
+                with open(products_file, "w") as f:
+                    json.dump(products, f, indent=4)
+                    
+        except Exception as e:
+            print(f"Error updating JSON stock: {e}")
 
     def place_order(self):
     # Validate payment method selection
