@@ -2,8 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <cctype>  // For std::isalpha and std::isdigit
-#include <algorithm>  // **FIX: Added for std::find used in studentMenu**
+#include <cctype>  
+#include <algorithm>  
 
 class Book {
 public:
@@ -416,4 +416,5 @@ int main() {
     } while (roleChoice != 3); 
 
     return 0;
+
 }
