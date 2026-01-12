@@ -41,7 +41,7 @@ void logHistory(const std::string& studentID, const std::string& action, const s
     std::ofstream file("history.txt", std::ios::app);
     if (file) {
         file << "[" << getCurrentTime() << "] ID: " << studentID 
-             << " | Action: " << action << " | ISBN: " << isbn << "\n";
+             << " | Action: " << action << " | Book Number: " << isbn << "\n";
     }
     file.close();
 }
@@ -55,7 +55,6 @@ void saveBooks(const std::vector<Book>& books) {
     file.close();
 }
 
-// PERSISTENCE: Save Users and their borrowed ISBNs
 void saveUsers(const std::vector<User>& users) {
     std::ofstream file("users.txt");
     if (!file) return;
@@ -90,7 +89,7 @@ int getSafeInt() {
 void listBooks(const std::vector<Book>& books) {
     if (books.empty()) { std::cout << "\nNo books available.\n"; return; }
     std::cout << "\n" << std::left << std::setw(25) << "TITLE" << std::setw(20) << "AUTHOR" 
-              << std::setw(15) << "ISBN" << "STATUS" << "\n";
+              << std::setw(15) << "Book NO" << "STATUS" << "\n";
     std::cout << std::string(75, '-') << "\n";
     for (const auto& b : books) {
         std::cout << std::left << std::setw(25) << b.title.substr(0, 23) 
@@ -100,9 +99,9 @@ void listBooks(const std::vector<Book>& books) {
     }
 }
 
-// --- ADMIN MENU ---
+// --- ADMIN MENU 
 
-void adminMenu(std::vector<Book>& books) {
+void adminMenu(std::vector<Book>& books, std::vector<User>& userList) {
     std::string password;
     std::cout << "\n[ADMIN SECURITY] Enter Admin Password: ";
     std::getline(std::cin, password);
@@ -114,14 +113,14 @@ void adminMenu(std::vector<Book>& books) {
 
     int choice;
     do {
-        std::cout << "\n[ADMIN MENU]\n1. Add Book\n2. List Books\n3. Edit Book\n4. Delete Book\n5. View All History\n6. Back\nChoice: ";
+        std::cout << "\n[ADMIN MENU]\nHello Admin!\n1. Add Book\n2. List Books\n3. Edit Book\n4. Delete Book\n5. View All History\n6. View Student Accounts\n7. Back\nChoice: ";
         choice = getSafeInt();
 
         if (choice == 1) {
             std::string t, a, i;
             std::cout << "Title: "; std::getline(std::cin, t);
             std::cout << "Author: "; std::getline(std::cin, a);
-            std::cout << "ISBN: "; std::getline(std::cin, i);
+            std::cout << "Book Number: "; std::getline(std::cin, i);
             books.push_back(Book(t, a, i));
             saveBooks(books);
             std::cout << "Book added successfully.\n";
@@ -129,7 +128,7 @@ void adminMenu(std::vector<Book>& books) {
         else if (choice == 2) listBooks(books);
         else if (choice == 3) { 
             std::string isbn;
-            std::cout << "Enter ISBN to edit: "; std::getline(std::cin, isbn);
+            std::cout << "Enter Book Number to edit: "; std::getline(std::cin, isbn);
             bool found = false;
             for (auto& b : books) {
                 if (b.isbn == isbn) {
@@ -144,13 +143,13 @@ void adminMenu(std::vector<Book>& books) {
         } 
         else if (choice == 4) { 
             std::string isbn;
-            std::cout << "Enter ISBN to delete: "; std::getline(std::cin, isbn);
+            std::cout << "Enter Book Number to delete: "; std::getline(std::cin, isbn);
             auto it = std::remove_if(books.begin(), books.end(), [&](Book& b){ return b.isbn == isbn; });
             if (it != books.end()) {
                 books.erase(it, books.end());
                 saveBooks(books);
                 std::cout << "Book deleted successfully.\n";
-            } else std::cout << "ISBN not found.\n";
+            } else std::cout << "Book Number not found.\n";
         } 
         else if (choice == 5) {
             std::ifstream file("history.txt");
@@ -161,7 +160,22 @@ void adminMenu(std::vector<Book>& books) {
                 while (std::getline(file, line)) std::cout << line << "\n"; 
             }
         }
-    } while (choice != 6);
+        else if (choice == 6) { 
+            if (userList.empty()) {
+                std::cout << "\nNo student accounts registered yet.\n";
+            } else {
+                std::cout << "\n" << std::left << std::setw(20) << "STUDENT NAME" 
+                          << std::setw(20) << "STUDENT ID" 
+                          << "BOOKS HELD" << "\n";
+                std::cout << std::string(55, '-') << "\n";
+                for (const auto& u : userList) {
+                    std::cout << std::left << std::setw(20) << u.name 
+                              << std::setw(20) << u.id 
+                              << u.borrowedBooks.size() << "\n";
+                }
+            }
+        }
+    } while (choice != 7);
 }
 
 // --- STUDENT MENU ---
@@ -173,7 +187,7 @@ void studentMenu(std::vector<Book>& books, std::vector<User>& userList) {
     const int BORROW_LIMIT = 3;
 
     while (attempts < 3) {
-        std::cout << "\n[STUDENT LOGIN] Enter ID (YYYY-NNNNN-AA-N): ";
+        std::cout << "\n[STUDENT LOGIN] Enter Student ID: ";
         std::getline(std::cin, id);
         if (isValidStudentID(id)) { loggedIn = true; break; }
         else { attempts++; std::cout << "Invalid Format! (" << (3 - attempts) << " left)\n"; }
@@ -201,30 +215,30 @@ void studentMenu(std::vector<Book>& books, std::vector<User>& userList) {
                 std::cout << "\n[!] ERROR: BORROW LIMIT REACHED (3 books max)!\n";
             } else {
                 std::string isbn;
-                std::cout << "Enter ISBN to borrow: "; std::getline(std::cin, isbn);
+                std::cout << "Enter Book Number to borrow: "; std::getline(std::cin, isbn);
                 bool found = false;
                 for (auto& b : books) {
                     if (b.isbn == isbn && b.available) {
                         b.available = false;
                         currentUser->borrowedBooks.push_back(isbn);
                         saveBooks(books);
-                        saveUsers(userList); // Save update
+                        saveUsers(userList);
                         logHistory(currentUser->id, "BORROW", isbn);
                         std::cout << "Successfully borrowed: " << b.title << "\n";
                         found = true; break;
                     }
                 }
-                if (!found) std::cout << "Book unavailable or ISBN incorrect.\n";
+                if (!found) std::cout << "Book unavailable or Book Number incorrect.\n";
             }
         } else if (choice == 3) {
             std::string isbn;
-            std::cout << "Enter ISBN to return: "; std::getline(std::cin, isbn);
+            std::cout << "Enter Book Number to return: "; std::getline(std::cin, isbn);
             auto it = std::find(currentUser->borrowedBooks.begin(), currentUser->borrowedBooks.end(), isbn);
             if (it != currentUser->borrowedBooks.end()) {
                 for (auto& b : books) if (b.isbn == isbn) b.available = true;
                 currentUser->borrowedBooks.erase(it);
                 saveBooks(books);
-                saveUsers(userList); // Save update
+                saveUsers(userList);
                 logHistory(currentUser->id, "RETURN", isbn);
                 std::cout << "Book returned successfully.\n";
             } else std::cout << "You aren't holding this book.\n";
@@ -234,7 +248,7 @@ void studentMenu(std::vector<Book>& books, std::vector<User>& userList) {
             if (currentUser->borrowedBooks.empty()) {
                 std::cout << "You have no borrowed books.\n";
             } else {
-                std::cout << std::left << std::setw(25) << "TITLE" << std::setw(20) << "AUTHOR" << "ISBN" << "\n";
+                std::cout << std::left << std::setw(25) << "TITLE" << std::setw(20) << "AUTHOR" << "Book NO" << "\n";
                 std::cout << std::string(65, '-') << "\n";
                 for (const auto& b_isbn : currentUser->borrowedBooks) {
                     for (const auto& book : books) {
@@ -315,7 +329,7 @@ int main() {
         std::cout << "==============================\n";
         std::cout << "1. Admin Login\n2. Student Login\n3. Exit\nChoice: ";
         role = getSafeInt();
-        if (role == 1) adminMenu(books);
+        if (role == 1) adminMenu(books, userList);
         else if (role == 2) studentMenu(books, userList);
     } while (role != 3);
 
